@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+kcptun="/usr/bin/kcptun_server"
+prog=$(basename $kcptun)
+
+KCPTUN_CONF_FILE="/etc/kcptun-config.json"
+
+
+start() {
+    [ -x $kcptun ] || exit 5
+    echo -n $"Starting $prog: "
+    nohup $kcptun -c $KCPTUN_CONF_FILE >/dev/null 2>&1 &
+    retval=$?
+    [ $retval -eq 0 ] && echo '[OK]' && return $retval
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    pgrep $prog | xargs -r kill
+    retval=$?
+    [ $retval -eq 0 ] && echo '[OK]' && return $retval
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+rh_status() {
+    status $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    status)
+        rh_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 2
+esac
+
